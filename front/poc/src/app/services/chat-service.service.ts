@@ -1,42 +1,25 @@
 import { Injectable } from '@angular/core';
-import * as Stomp from '@stomp/stompjs';
-import SockJS from 'sockjs-client/dist/sockjs';
-
-
+import { io, Socket } from 'socket.io-client';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
-  private stompClient: Stomp.Client | null = null;
-  private url = 'http://localhost:8080/ws/chat';
+  private socket: Socket;
 
- connect(onMessageReceived: (msg: any) => void) {
-  const socket = new SockJS(this.url);
-  this.stompClient = new Stomp.Client({
-    webSocketFactory: () => socket as any,
-    onConnect: () => {
-      console.log('Connecté au broker STOMP');
-      this.stompClient?.subscribe('/topic/messages', (message) => {
-        if (message.body) {
-          onMessageReceived(JSON.parse(message.body));
-        }
-      });
-    },
-    onStompError: (frame) => {
-      console.error('Erreur STOMP : ', frame);
-    },
-  });
+  constructor() {
+    this.socket = io('http://localhost:8085', {
+      transports: ['websocket'],
+      withCredentials: true,
+      autoConnect: true
+    });
+  }
 
-  this.stompClient.activate();
-}
+  connect(onMessageReceived: (msg: any) => void) {
+    this.socket.on('chatMessage', (message: any) => {
+      onMessageReceived(message);
+    });
+  }
 
   sendMessage(sender: string, content: string) {
-  if (this.stompClient && this.stompClient.connected) {
-    this.stompClient.publish({
-      destination: '/app/sendMessage',
-      body: JSON.stringify({ sender, content })
-    });
-  } else {
-    console.error('La connexion STOMP n’est pas active.');
+    this.socket.emit('sendMessage', { sender, content });
   }
-}
 }

@@ -19,11 +19,17 @@ export class ChatComponent implements OnInit {
   constructor(private chatService: ChatService) {}
 
   ngOnInit() {
-    this.chatService.connect((msg) => this.messages.push(msg));
+    this.chatService.connect((msg) => {
+      // Ajouter le nouveau message en haut du tableau
+      this.messages = [msg, ...this.messages];
+    });
   }
 
   send() {
     if (this.message.trim()) {
+      // Ajouter immédiatement le message localement en haut
+      this.messages = [{ sender: this.sender, content: this.message }, ...this.messages];
+      
       this.chatService.sendMessage(this.sender, this.message);
       this.message = '';
     }

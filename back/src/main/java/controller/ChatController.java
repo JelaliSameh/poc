@@ -1,19 +1,45 @@
 package controller;
 
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RestController;
+import com.corundumstudio.socketio.SocketIOClient;
+import com.corundumstudio.socketio.SocketIOServer;
+import configuration.SocketIOServerRunner;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import dto.ChatMessage;
 
-@CrossOrigin(origins = "http://localhost:4200")
-@RestController
+@Component
 public class ChatController {
 
-    @MessageMapping("/chat")
-    @SendTo("/topic/messages")
-    public ChatMessage sendMessage(ChatMessage message) {
-        return message;
+    private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
+
+    private final SocketIOServerRunner server;
+
+
+    public ChatController(SocketIOServerRunner server) {
+        this.server = server;
+    }
+
+    @PostConstruct
+    public void setupListener() {
+        SocketIOServer socket = this.server.getSocket();
+        socket.addEventListener("/topic/messages", ChatMessage.class, (client, message, ackSender) -> {
+            onChatMessage(client, message);
+        });
+    }
+
+    private void onChatMessage(SocketIOClient client, ChatMessage message) {
+        logger.info("Received message from client {}: sender={}, content={}",
+                client.getSessionId(),message.getSender(),message.getContent());
+        try {
+            // Diffuse the message to all connected clients
+            //this.messageService.saveMessage(message);
+            server.getSocket().getBroadcastOperations().sendEvent("chatMessage", message);
+
+        } catch (Exception e) {
+            logger.error("Error handling chat message: {}", e.getMessage(), e);
+        }
     }
 }
