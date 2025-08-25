@@ -6,9 +6,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
-
+//DTO (Data Transfer Object) représentant un message chat
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatMessage {
     private String sender;
     private String content;

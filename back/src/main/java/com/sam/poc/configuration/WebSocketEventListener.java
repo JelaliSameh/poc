@@ -16,7 +16,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
+//Écoute les événements de connexion/déconnexion WebSocket
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -27,16 +27,18 @@ public class WebSocketEventListener {
   private final SimpMessageSendingOperations messagingTemplate;
   private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
-
+//Gère les nouvelles connexions WebSocket
   @EventListener
   public void handleSessionConnected(SessionConnectEvent event) {
+	// Ajoute la session à la liste des sessions actives et met à jour le compteur
     String sessionId = event.getMessage().getHeaders().get("simpSessionId").toString();
     activeSessions.add(sessionId);
     sendConnectionCount();
   }
-
+  // Gère les déconnexions WebSocket
   @EventListener
   public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+	  // Notifie quand un utilisateur se déconnecte et met à jour le compteur
     StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
     if (headerAccessor.getSessionAttributes() == null) {
       String username = (String) headerAccessor.getSessionAttributes().get("username");
@@ -54,8 +56,9 @@ public class WebSocketEventListener {
       }
     }
   }
-
+  // Envoie le nombre de connexions actives à tous les clients
   private void sendConnectionCount() {
+	// Diffuse le compteur via le topic "/topic/connections"
     int count = activeSessions.size();
 
     messagingTemplate.convertAndSend("/topic/connections", count);
